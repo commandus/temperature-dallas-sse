@@ -9,6 +9,8 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	# set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 	# set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
 	set(OS_SPECIFIC_LIBS wsock32 ws2_32 Userenv d3d12 d3dcompiler dxgi)
+else()
+	set(OS_SPECIFIC_LIBS pthread)	
 endif()
 
 add_executable(temperature-dallas-sse
