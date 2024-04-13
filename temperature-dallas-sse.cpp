@@ -7,34 +7,31 @@
 #include <sstream>
 #include <thread>
 
-using namespace httplib;
-using namespace std;
-
 class EventDispatcher {
 public:
   EventDispatcher() {
   }
 
-  void wait_event(DataSink *sink) {
-    unique_lock<mutex> lk(m_);
+  void wait_event(httplib::DataSink *sink) {
+    std::unique_lock<std::mutex> lk(m_);
     int id = id_;
     cv_.wait(lk, [&] { return cid_ == id; });
     sink->write(message_.data(), message_.size());
   }
 
-  void send_event(const string &message) {
-    lock_guard<mutex> lk(m_);
+  void send_event(const std::string &message) {
+    std::lock_guard<std::mutex> lk(m_);
     cid_ = id_++;
     message_ = message;
     cv_.notify_all();
   }
 
 private:
-  mutex m_;
-  condition_variable cv_;
-  atomic_int id_{0};
-  atomic_int cid_{-1};
-  string message_;
+  std::mutex m_;
+  std::condition_variable cv_;
+  std::atomic_int id_{0};
+  std::atomic_int cid_{-1};
+  std::string message_;
 };
 
 const auto html = R"(
@@ -46,13 +43,9 @@ const auto html = R"(
 </head>
 <body>
 <script>
-const ev1 = new EventSource("event1");
-ev1.onmessage = function(e) {
-  console.log('ev1', e.data);
-}
-const ev2 = new EventSource("event2");
-ev2.onmessage = function(e) {
-  console.log('ev2', e.data);
+const ev = new EventSource("event");
+ev.onmessage = function(e) {
+  console.log('event', e.data);
 }
 </script>
 </body>
@@ -61,31 +54,35 @@ ev2.onmessage = function(e) {
 
 int main(void) {
   EventDispatcher ed;
+  httplib::Server svr;
 
-  Server svr;
-
-  svr.Get("/", [&](const Request & /*req*/, Response &res) {
+  svr.Get("/", [&](const httplib::Request & /*req*/, httplib::Response &res) {
     res.set_content(html, "text/html");
   });
 
-  svr.Get("/event1", [&](const Request & /*req*/, Response &res) {
-    cout << "connected to event1..." << endl;
-    res.set_chunked_content_provider("text/event-stream",
-                                     [&](size_t /*offset*/, DataSink &sink) {
-                                       ed.wait_event(&sink);
-                                       return true;
-                                     });
+  svr.Get("/send", [&](const httplib::Request & req, httplib::Response &res) {
+    std::stringstream ss;
+    ss << "data: ";
+    for (auto it(req.params.begin()); it != req.params.end(); it++) {
+      ss << it->first << "=" << it->second << ",";
+    }
+    ss << "\n\n";
+    auto s = ss.str();
+    ed.send_event(s);
+    res.set_content(s, "text/plain");
+    std::cout << "Send event: " << s << std::endl;
   });
 
-  svr.Get("/event2", [&](const Request & /*req*/, Response &res) {
-    cout << "connected to event2..." << endl;
+  svr.Get("/event", [&](const httplib::Request & /*req*/, httplib::Response &res) {
+    std::cout << "connected" << std::endl;
     res.set_chunked_content_provider("text/event-stream",
-                                     [&](size_t /*offset*/, DataSink &sink) {
-                                       ed.wait_event(&sink);
-                                       return true;
-                                     });
+      [&](size_t /*offset*/, httplib::DataSink &sink) {
+        ed.wait_event(&sink);
+        return true;
+      });
   });
 
+  /*
   thread t([&] {
     int id = 0;
     while (true) {
@@ -97,6 +94,7 @@ int main(void) {
       id++;
     }
   });
+  */
 
   svr.listen("127.0.0.1", 1234);
 }
