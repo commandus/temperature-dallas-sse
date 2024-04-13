@@ -98,5 +98,5 @@ int main(void) {
     }
   });
 
-  svr.listen("localhost", 1234);
+  svr.listen("127.0.0.1", 1234);
 }
