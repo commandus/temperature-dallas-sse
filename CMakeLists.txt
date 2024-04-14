@@ -14,7 +14,9 @@ else()
 endif()
 
 add_executable(temperature-dallas-sse
-	temperature-dallas-sse.cpp
+	temperature-dallas-sse.cpp event-dispatcher.cpp
+	third-party/daemonize.cpp
+	third-party/argtable3/argtable3.c
 )
 target_link_libraries(temperature-dallas-sse PRIVATE ${OS_SPECIFIC_LIBS})
 target_include_directories(temperature-dallas-sse PRIVATE "." "third-party")
