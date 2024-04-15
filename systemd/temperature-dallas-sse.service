@@ -1,0 +1,12 @@
+[Unit]
+Description=Dallas temperature sensor SSE service
+
+[Service]
+Type=forking
+PIDFile=/var/run/temperature-dallas-sse.pid
+ExecStart=/home/andrei/temperature-dallas-sse/temperature-dallas-sse \
+  -d --pidfile /var/run/temperature-dallas-sse.pid
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target
