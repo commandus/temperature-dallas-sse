@@ -88,6 +88,12 @@ cd ~/temperature-dallas-sse
 nohup ./temperature-dallas-sse &
 ```
 
-```sh
-wget "https://t.commandus.com/sse/send?a=1&b=Ab"
+```shell
+wget -q -O - "https://t.commandus.com/sse/send?a=1&b=Ab"
 ``` 
+
+or
+
+```shell
+ wget -q -O - "http://localhost:1234/send?a=1&b=Ab"
+```

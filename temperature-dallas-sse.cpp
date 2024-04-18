@@ -1,5 +1,4 @@
 #include <chrono>
-#include <condition_variable>
 #include <httplib.h>
 #include <iostream>
 #include <sstream>
@@ -16,11 +15,10 @@
 #else
 #include <unistd.h>
 #include <syslog.h>
-#include <sstream>
 #include <execinfo.h>
 #define	SYSLOG(level, msg) { syslog (level, "%s", msg); }
 #define OPEN_SYSLOG(NAME) { setlogmask (LOG_UPTO(LOG_NOTICE)); openlog(NAME, LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1); }
-#define CLOSE_SYSLOG() closelog();
+#define CLOSE_SYSLOG() closelog();\
 #endif
 
 #include "argtable3/argtable3.h"
@@ -40,10 +38,10 @@
 #define MSG_CHECK_SYSLOG        _("Check syslog")
 
 #define CODE_OK                     0
-#define ERR_CODE_SEGMENTATION_FAULT -5001
-#define ERR_CODE_INT                -5002
-#define ERR_CODE_ABRT               -5003
-#define ERR_CODE_PARAM_INVALID      -5004
+#define ERR_CODE_SEGMENTATION_FAULT (-5001)
+#define ERR_CODE_INT                (-5002)
+#define ERR_CODE_ABRT               (-5003)
+#define ERR_CODE_PARAM_INVALID      (-5004)
 
 const char *programName = "tlns-check";
 
@@ -115,18 +113,18 @@ static void run() {
         std::stringstream ss;
         ss << "data: ";
         bool f = true;
-        for (auto it(req.params.begin()); it != req.params.end(); it++) {
+        for (const auto & param : req.params) {
             if (f)
                 f = false;
             else
                 ss << ",";
-            ss << it->first << "=" << it->second;
+            ss << param.first << "=" << param.second;
         }
+        // std::cout << ss.str() << "\n";
         ss << "\n\n";
         auto s = ss.str();
         ed.send_event(s);
         res.set_content(s, "text/plain");
-        std::cout << "Send event: " << s << std::endl;
     });
 
     svr->Get("/event", [&](const httplib::Request & /*req*/, httplib::Response &res) {
@@ -146,8 +144,7 @@ static void printTrace() {
 #ifdef _MSC_VER
 #else
     void *t[TRACE_BUFFER_SIZE];
-    size_t size = backtrace(t, TRACE_BUFFER_SIZE);
-    backtrace_symbols_fd(t, size, STDERR_FILENO);
+    backtrace_symbols_fd(t, backtrace(t, TRACE_BUFFER_SIZE), STDERR_FILENO);
 #endif
 }
 
@@ -160,7 +157,6 @@ void signalHandler(int signal)
             stop();
             done();
             exit(ERR_CODE_INT);
-            break;
         case SIGSEGV:
             std::cerr << ERR_SEGMENTATION_FAULT << std::endl;
             printTrace();
@@ -203,22 +199,22 @@ static bool splitAddress(
  *        ERR_CODE_PARAM_INVALID- show help and exit, or command syntax error
  **/
 static int parseCmd(
-    TemperatureSSEConfiguration *config,
+    TemperatureSSEConfiguration *retConfig,
     int argc,
     char *argv[]
 )
 {
     // device path
-    struct arg_str *a_intf_port = arg_str0(nullptr, nullptr, _("<ip-addr:port>"), _("Server address and port Default 127.0.0.1:1234"));
+    struct arg_str *a_address_port = arg_str0(nullptr, nullptr, _("<ip-addr:port>"), _("Server address and port Default 127.0.0.1:1234"));
     struct arg_lit *a_daemonize = arg_lit0("d", "daemonize", _("Run as daemon"));
-    struct arg_str *a_pidfile = arg_str0("p", "pidfile", _("<file>"), _("Check whether a process has created the file pidfile"));
+    struct arg_str *a_pid_file = arg_str0("p", "pidfile", _("<file>"), _("Check whether a process has created the file pidfile"));
     struct arg_lit *a_verbosity = arg_litn("v", "verbose", 0, 2, _("Verbosity level"));
     struct arg_lit *a_help = arg_lit0("?", "help", _("Show this help"));
     struct arg_end *a_end = arg_end(20);
 
     void *argtable[] = {
-        a_intf_port,
-        a_daemonize, a_pidfile, a_verbosity, a_help, a_end
+            a_address_port,
+            a_daemonize, a_pid_file, a_verbosity, a_help, a_end
     };
 
     // verify the argtable[] entries were allocated successfully
@@ -229,19 +225,19 @@ static int parseCmd(
     // Parse the command line as defined by argtable[]
     int nErrors = arg_parse(argc, argv, argtable);
 
-    if (a_intf_port->count)
-        splitAddress(config->intf, config->port, *a_intf_port->sval);
+    if (a_address_port->count)
+        splitAddress(retConfig->intf, retConfig->port, *a_address_port->sval);
     else {
-        config->intf = "127.0.0.1";
-        config->port = 1234;
+        retConfig->intf = "127.0.0.1";
+        retConfig->port = 1234;
     }
-    config->daemonize = (a_daemonize->count > 0);
-    if (a_pidfile->count)
-        config->pidfile = *a_pidfile->sval;
+    retConfig->daemonize = (a_daemonize->count > 0);
+    if (a_pid_file->count)
+        retConfig->pidfile = *a_pid_file->sval;
     else
-        config->pidfile = "";
+        retConfig->pidfile = "";
 
-    config->verbosity = a_verbosity->count;
+    retConfig->verbosity = a_verbosity->count;
 
     // special case: '--help' takes precedence over error reporting
     if ((a_help->count) || nErrors) {
@@ -284,7 +280,6 @@ int main(int argc, char **argv)
                       << MSG_CHECK_SYSLOG << std::endl;
 		OPEN_SYSLOG(programName)
         Daemonize daemon(programName, programPath, run, stop, done, 0, config.pidfile);
-		// CLOSESYSLOG()
 	} else {
 		setSignalHandler();
 		run();
