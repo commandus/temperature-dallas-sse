@@ -144,20 +144,9 @@ sample code bearing this copyright.
 //--------------------------------------------------------------------------
 */
 
-#include <Arduino.h>
-#include "OneWire.h"
-#include "util/OneWire_direct_gpio.h"
+#include "one-wire.h"
 
-#ifdef ARDUINO_ARCH_ESP32
-// due to the dual core esp32, a critical section works better than disabling interrupts
-#  define noInterrupts() {portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;portENTER_CRITICAL(&mux)
-#  define interrupts() portEXIT_CRITICAL(&mux);}
-// for info on this, search "IRAM_ATTR" at https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/general-notes.html 
-#  define CRIT_TIMING IRAM_ATTR
-#else
-#  define CRIT_TIMING 
-#endif
-
+#define CRIT_TIMING
 
 void OneWire::begin(uint8_t pin)
 {

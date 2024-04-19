@@ -45,6 +45,9 @@
 // Board-specific macros for direct GPIO
 // #include "util/OneWire_direct_regtype.h"
 
+#define IO_REG_TYPE int
+#define PROGMEM
+
 class OneWire
 {
   private:
