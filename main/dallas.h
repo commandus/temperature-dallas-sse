@@ -1,3 +1,4 @@
+// https://github.com/milesburton/Arduino-Temperature-Control-Library/blob/master/DallasTemperature.h
 #ifndef DallasTemperature_h
 #define DallasTemperature_h
 
@@ -45,28 +46,6 @@
 #define DEVICE_FAULT_SHORTVDD_C -252
 #define DEVICE_FAULT_SHORTVDD_F -421.599976
 #define DEVICE_FAULT_SHORTVDD_RAW -32256
-
-// For readPowerSupply on oneWire bus
-// definition of nullptr for C++ < 11, using official workaround:
-// http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2431.pdf
-#if __cplusplus < 201103L
-const class
-{
-public:
-	template <class T>
-	operator T *() const {
-		return 0;
-	}
-
-	template <class C, class T>
-	operator T C::*() const {
-		return 0;
-	}
-
-private:
-	void operator&() const;
-} nullptr = {};
-#endif
 
 typedef uint8_t DeviceAddress[8];
 

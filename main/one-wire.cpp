@@ -145,12 +145,14 @@ sample code bearing this copyright.
 */
 
 #include "one-wire.h"
+#include "driver/gpio.h"
 
 #define CRIT_TIMING
 
 void OneWire::begin(uint8_t pin)
 {
-	pinMode(pin, INPUT);
+	// pinMode(pin, INPUT);
+  gpio_set_direction(pin, GPIO_MODE_INPUT);
 	bitmask = PIN_TO_BITMASK(pin);
 	baseReg = PIN_TO_BASEREG(pin);
 #if ONEWIRE_SEARCH

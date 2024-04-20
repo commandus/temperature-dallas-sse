@@ -4,21 +4,7 @@
 // version 2.1 of the License, or (at your option) any later version.
 
 #include "dallas.h"
-
-// for Particle support
-// yield() is not a standard function, but instead wraps Particle process
-// https://community.particle.io/t/syscall-yield-operation/40708/2
-#if defined(PLATFORM_ID)  // Only defined if a Particle device
-inline void yield() {
-	Particle.process();
-}
-#elif ARDUINO >= 100
-#include "Arduino.h"
-#else
-extern "C" {
-#include "WConstants.h"
-}
-#endif
+#include "driver/gpio.h"
 
 // OneWire commands
 #define STARTCONVO      0x44  // Tells device to take a temperature reading and put it on the scratchpad
@@ -91,7 +77,8 @@ DallasTemperature::DallasTemperature(OneWire* _oneWire, uint8_t _pullupPin) : Da
 void DallasTemperature::setPullupPin(uint8_t _pullupPin) {
 	useExternalPullup = true;
 	pullupPin = _pullupPin;
-	pinMode(pullupPin, OUTPUT);
+	// pinMode(pullupPin, OUTPUT);
+	gpio_set_direction(pullupPin, GPIO_MODE_OUTPUT);
 	deactivateExternalPullup();
 }
 
