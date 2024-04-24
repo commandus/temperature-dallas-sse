@@ -97,3 +97,64 @@ or
 ```shell
  wget -q -O - "http://localhost:1234/send?a=1&b=Ab"
 ```
+
+### nginx proxy
+
+```
+server {
+        listen 127.0.0.1:8084;
+        listen [::1]:8084 default_server;
+        root /var/www/html/t;
+        index index.html index.htm;
+        server_name t.commandus.com;
+        location / {
+                try_files $uri $uri/ =404;
+        }
+        location /sse {
+                rewrite /sse(/.*) $1 break;
+                proxy_pass http://127.0.0.1:1234;
+                proxy_buffering off;
+                proxy_cache off;
+                proxy_set_header Host $host;
+                proxy_set_header Connection '';
+                proxy_http_version 1.1;
+                chunked_transfer_encoding off;
+                # prevents 502 bad gateway error
+                proxy_buffers 8 32k;
+                proxy_buffer_size 64k;
+                reset_timedout_connection on;
+                proxy_read_timeout 24h;
+        }
+}
+```
+
+### HTML page
+
+```html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SSE demo</title>
+</head>
+<body>
+<script>
+  const ev = new EventSource("/sse/event");
+  ev.onmessage = function(e) {
+    const d = e.data;
+    console.log(new Date(), d);
+    const l = document.getElementById("t");
+    const n = document.createElement("div");
+    const t = document.createTextNode(d);
+    n.appendChild(t);
+    l.appendChild(n);
+  }
+</script>
+  <a target="_blanc" href="https://t.commandus.com/sse/send?a=1&b=Ab">Send</a>  
+<p id="t">
+    
+</p>  
+</body>
+</html>
+```
