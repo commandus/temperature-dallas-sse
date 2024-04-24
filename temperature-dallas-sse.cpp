@@ -6,19 +6,23 @@
 #include <csignal>
 
 #ifdef _MSC_VER
+
 #include <direct.h>
 #define PATH_MAX MAX_PATH
 #define getcwd _getcwd
 #define	SYSLOG(msg)
 #define OPEN_SYSLOG(NAME)
 #define CLOSE_SYSLOG()
+
 #else
+
 #include <unistd.h>
 #include <syslog.h>
 #include <execinfo.h>
 #define	SYSLOG(level, msg) { syslog (level, "%s", msg); }
 #define OPEN_SYSLOG(NAME) { setlogmask (LOG_UPTO(LOG_NOTICE)); openlog(NAME, LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1); }
 #define CLOSE_SYSLOG() closelog();\
+
 #endif
 
 #include "argtable3/argtable3.h"
@@ -129,6 +133,7 @@ static void run() {
 
     svr->Get("/event", [&](const httplib::Request & /*req*/, httplib::Response &res) {
         std::cout << "connected" << std::endl;
+        res.set_header("Access-Control-Allow-Origin", "*");
         res.set_chunked_content_provider("text/event-stream",
             [&](size_t /*offset*/, httplib::DataSink &sink) {
                 ed.wait_event(&sink);
