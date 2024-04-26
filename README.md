@@ -37,13 +37,31 @@ vi /home/andrei/renew-certificate.sh
 
 Run docker Ubuntu 18
 
-Build
 ```
-cd src/temperature-dallas-sse
-cd build-ubuntu-18
+docker run -itv /home/andrei/src:/home/andrei/src lora bash
+```
+
+Build
+
+```
+cd /home/andrei/src/temperature-dallas-sse
+cd build-18
 cmake ..
 make
 strip temperature-dallas-sse
+```
+
+Deploy
+
+```
+cd /home/andrei/src/temperature-dallas-sse/build-18
+sudo chown andrei:andrei temperature-dallas-sse
+# Before copy stop service: log to lora and execure: sudo systemctl stop temperature-dallas-sse.service
+scp temperature-dallas-sse andrei@lora.commandus.com:~/temperature-dallas-sse/ 
+```
+
+Clean docker
+```
 ```
 
 ## Host HTML page
@@ -76,10 +94,6 @@ strip temperature-dallas-sse
 </html>
 ```
 
-## Copy binary
-```
-scp temperature-dallas-sse andrei@lora.commandus.com:~/temperature-dallas-sse/ 
-```
 
 ## Start SSE server
 ```sh
@@ -89,13 +103,13 @@ nohup ./temperature-dallas-sse &
 ```
 
 ```shell
-wget -q -O - "https://t.commandus.com/sse/send?a=1&b=Ab"
+wget -q -O - "https://t.commandus.com/sse/send?m=1&t=18.2
 ``` 
 
 or
 
 ```shell
- wget -q -O - "http://localhost:1234/send?a=1&b=Ab"
+ wget -q -O - "http://localhost:1234/send??m=1&t=18.2"
 ```
 
 ### nginx proxy

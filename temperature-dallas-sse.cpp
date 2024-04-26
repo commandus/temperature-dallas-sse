@@ -47,7 +47,7 @@
 #define ERR_CODE_ABRT               (-5003)
 #define ERR_CODE_PARAM_INVALID      (-5004)
 
-const char *programName = "tlns-check";
+const char *programName = "temperature-dallas-sse";
 
 httplib::Server *svr;
 
@@ -95,14 +95,19 @@ public:
 
 static TemperatureSSEConfiguration config;
 
+static bool stopped = false;
+
 static void stop()
 {
+    if (stopped)
+        return;
+    stopped = true;
     svr->stop();
-    delete svr;
 }
 
 static void done()
 {
+    delete svr;
     svr = nullptr;
 }
 
@@ -131,8 +136,8 @@ static void run() {
         res.set_content(s, "text/plain");
     });
 
-    svr->Get("/event", [&](const httplib::Request & /*req*/, httplib::Response &res) {
-        std::cout << "connected" << std::endl;
+    svr->Get("/event", [&](const httplib::Request req, httplib::Response &res) {
+        std::cout << "connected from " << req.remote_addr << std::endl;
         res.set_header("Access-Control-Allow-Origin", "*");
         res.set_chunked_content_provider("text/event-stream",
             [&](size_t /*offset*/, httplib::DataSink &sink) {
@@ -140,6 +145,15 @@ static void run() {
                 return true;
             });
     });
+
+    // @see https://stackoverflow.com/questions/77116681/server-sent-events-sse-not-working-if-done-only-with-nginx-static-server
+    std::thread heartBeatThread([&] {
+        while (true) {
+            std::this_thread::sleep_for(std::chrono::seconds(60));
+            ed.send_event("data: \n\n");
+        }
+    });
+
     svr->listen(config.intf, config.port);
 }
 
